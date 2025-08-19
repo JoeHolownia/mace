@@ -182,7 +182,20 @@ def train(
     epoch = start_epoch
 
     # log validation loss before _any_ training
-    valid_loss = 0.0
+    train_loss, valid_loss = 0.0, 0.0
+    # log train errors
+    train_loader_name = 'train'
+    train_loss_head, eval_metrics = evaluate(
+            model=model_to_evaluate,
+            loss_fn=loss_fn,
+            data_loader=train_loader,
+            output_args=output_args,
+            device=device,
+        )
+    valid_err_log(
+        train_loss_head, eval_metrics, logger, log_errors, epoch, train_loader_name,
+    )
+    train_loss = train_loss_head
     for valid_loader_name, valid_loader in valid_loaders.items():
         valid_loss_head, eval_metrics = evaluate(
             model=model,
