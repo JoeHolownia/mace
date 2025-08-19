@@ -172,6 +172,7 @@ def train(
     distributed_model: Optional[DistributedDataParallel] = None,
     train_sampler: Optional[DistributedSampler] = None,
     rank: Optional[int] = 0,
+    patience_warmup: Optional[int] = 0
 ):
     lowest_loss = np.inf
     valid_loss = np.inf
@@ -257,6 +258,36 @@ def train(
                 optimizer.eval()
             with param_context:
                 wandb_log_dict = {}
+
+                # log train errors
+                train_loader_name = 'train'
+                train_loss_head, eval_metrics = evaluate(
+                    model=model_to_evaluate,
+                    loss_fn=loss_fn,
+                    data_loader=train_loader,
+                    output_args=output_args,
+                    device=device,
+                )
+                if rank == 0:
+                    valid_err_log(
+                        train_loss_head,
+                        eval_metrics,
+                        logger,
+                        log_errors,
+                        epoch,
+                        train_loader_name,
+                    )
+                    if log_wandb:
+                        wandb_log_dict[train_loader_name] = {
+                            "epoch": epoch,
+                            "train_loss": train_loss_head,
+                            "train_rmse_e_per_atom": eval_metrics[
+                                "rmse_e_per_atom"
+                            ],
+                            "train_rmse_f": eval_metrics["rmse_f"],
+                        }
+
+                # log validation errors
                 for valid_loader_name, valid_loader in valid_loaders.items():
                     valid_loss_head, eval_metrics = evaluate(
                         model=model_to_evaluate,
@@ -294,7 +325,8 @@ def train(
             if log_wandb:
                 wandb.log(wandb_log_dict)
             if rank == 0:
-                if valid_loss >= lowest_loss:
+                # check for patience warmup to start counting patience
+                if valid_loss >= lowest_loss and epoch >= patience_warmup:
                     patience_counter += 1
                     if patience_counter >= patience:
                         if swa is not None and epoch < swa.start:
