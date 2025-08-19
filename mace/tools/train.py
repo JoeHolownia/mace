@@ -249,6 +249,36 @@ def train(
             with param_context:
                 valid_loss = 0.0
                 wandb_log_dict = {}
+
+                # log train errors
+                train_loader_name = 'train'
+                train_loss_head, eval_metrics = evaluate(
+                        model=model_to_evaluate,
+                        loss_fn=loss_fn,
+                        data_loader=train_loader,
+                        output_args=output_args,
+                        device=device,
+                    )
+                if rank == 0:
+                    valid_err_log(
+                        train_loss_head,
+                        eval_metrics,
+                        logger,
+                        log_errors,
+                        epoch,
+                        train_loader_name,
+                    )
+                    if log_wandb:
+                        wandb_log_dict[train_loader_name] = {
+                            "epoch": epoch,
+                            "train_loss": train_loss_head,
+                            "train_rmse_e_per_atom": eval_metrics[
+                                "rmse_e_per_atom"
+                            ],
+                            "train_rmse_f": eval_metrics["rmse_f"],
+                        }
+
+                # log valid errors
                 for valid_loader_name, valid_loader in valid_loaders.items():
                     valid_loss_head, eval_metrics = evaluate(
                         model=model_to_evaluate,
