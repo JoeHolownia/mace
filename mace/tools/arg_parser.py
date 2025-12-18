@@ -680,6 +680,12 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default=2048,
     )
     parser.add_argument(
+        "--patience_warmup",
+        help="Number of epochs to wait before patience becomes active",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
         "--foundation_model",
         help="Path to the foundation model for transfer learning",
         type=str,

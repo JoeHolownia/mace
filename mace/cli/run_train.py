@@ -227,6 +227,9 @@ def run(args) -> None:
                     atomic_energies = json.load(f)
                 head_config.E0s = atomic_energies
                 head_config.atomic_energies_dict = ast.literal_eval(atomic_energies)
+                # print('Atomic Energies: ', atomic_energies)
+                # print('Head Config E0s: ', head_config.E0s)
+                # print('Head  Atomic Energies Dict: ', head_config.atomic_energies_dict)
             else:
                 head_config.E0s = statistics["atomic_energies"]
                 head_config.atomic_energies_dict = ast.literal_eval(
@@ -819,6 +822,7 @@ def run(args) -> None:
         max_num_epochs=args.max_num_epochs,
         logger=logger,
         patience=args.patience,
+        patience_warmup=args.patience_warmup,
         save_all_checkpoints=args.save_all_checkpoints,
         output_args=output_args,
         device=device,
