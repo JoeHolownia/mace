@@ -156,6 +156,7 @@ def train(
     start_epoch: int,
     max_num_epochs: int,
     patience: int,
+    patience_warmup: int,
     checkpoint_handler: CheckpointHandler,
     logger: MetricsLogger,
     eval_interval: int,
@@ -327,33 +328,38 @@ def train(
             if log_wandb:
                 wandb.log(wandb_log_dict)
             if rank == 0:
-                # check for patience warmup to start counting patience
-                if valid_loss >= lowest_loss and epoch >= patience_warmup:
-                    patience_counter += 1
-                    if patience_counter >= patience:
-                        if swa is not None and epoch < swa.start:
-                            logging.info(
-                                f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
-                            )
-                            epoch = swa.start
-                        else:
-                            logging.info(
-                                f"Stopping optimization after {patience_counter} epochs without improvement"
-                            )
-                            if exit_now is not None:
-                                exit_now.fill_(1)
-                    if save_all_checkpoints:
-                        param_context = (
-                            ema.average_parameters()
-                            if ema is not None
-                            else nullcontext()
+                if epoch > patience_warmup:
+                    if patience_warmup > 0 and patience_warmup == epoch + 1:
+                        logging.info(
+                            f"Patience activated after {epoch} epochs of warmup"
                         )
-                        with param_context:
-                            checkpoint_handler.save(
-                                state=CheckpointState(model, optimizer, lr_scheduler),
-                                epochs=epoch,
-                                keep_last=True,
+                    # check for patience warmup to start counting patience
+                    if valid_loss >= lowest_loss:
+                        patience_counter += 1
+                        if patience_counter >= patience:
+                            if swa is not None and epoch < swa.start:
+                                logging.info(
+                                    f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
+                                )
+                                epoch = swa.start
+                            else:
+                                logging.info(
+                                    f"Stopping optimization after {patience_counter} epochs without improvement"
+                                )
+                                if exit_now is not None:
+                                    exit_now.fill_(1)
+                                break
+                        if save_all_checkpoints:
+                            param_context = (
+                                ema.average_parameters() if ema is not None else nullcontext()
                             )
+                            with param_context:
+                                checkpoint_handler.save(
+                                    state=CheckpointState(model, optimizer, lr_scheduler),
+                                    epochs=epoch,
+                                    keep_last=keep_last,
+                                )
+                                keep_last = False or save_all_checkpoints
                 else:
                     lowest_loss = valid_loss
                     patience_counter = 0
@@ -367,6 +373,7 @@ def train(
                             keep_last=keep_last,
                         )
                         keep_last = False or save_all_checkpoints
+        
         if distributed:
             torch.distributed.barrier()
         if exit_now is not None:

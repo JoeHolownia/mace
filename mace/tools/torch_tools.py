@@ -72,7 +72,6 @@ def init_device(device_str: str) -> torch.device:
         torch.xpu.memory_stats()
         logging.info("Using XPU GPU acceleration")
         return torch.device("xpu")
-
     logging.info("Using CPU")
     return torch.device("cpu")
 
