@@ -184,19 +184,21 @@ def train(
 
     # log validation loss before _any_ training
     train_loss, valid_loss = 0.0, 0.0
+
     # log train errors
     train_loader_name = 'train'
     train_loss_head, eval_metrics = evaluate(
-            model=model_to_evaluate,
+            model=model,
             loss_fn=loss_fn,
             data_loader=train_loader,
             output_args=output_args,
             device=device,
         )
     valid_err_log(
-        train_loss_head, eval_metrics, logger, log_errors, epoch, train_loader_name,
+        train_loss_head, eval_metrics, logger, log_errors, None, train_loader_name,
     )
     train_loss = train_loss_head
+
     for valid_loader_name, valid_loader in valid_loaders.items():
         valid_loss_head, eval_metrics = evaluate(
             model=model,
@@ -331,6 +333,10 @@ def train(
                 wandb.log(wandb_log_dict)
             if rank == 0:
                 if epoch > patience_warmup:
+                    if patience_warmup > 0 and patience_warmup == epoch + 1:
+                        logging.info(
+                            f"Patience activated after {epoch} epochs of warmup"
+                        )
                     if valid_loss >= lowest_loss:
                         patience_counter += 1
                         if patience_counter >= patience:

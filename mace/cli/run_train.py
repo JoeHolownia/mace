@@ -718,6 +718,8 @@ def run(args) -> None:
         f"Number of gradient updates: {int(args.max_num_epochs*len(train_set)/args.batch_size)}"
     )
     logging.info(f"Learning rate: {args.lr}, weight decay: {args.weight_decay}")
+    if args.patience_warmup > 0:
+        logging.info(f"Using a patience of {args.patience} with a warmup of {args.patience_warmup} epochs")
     logging.info(loss_fn)
 
     # Cueq
