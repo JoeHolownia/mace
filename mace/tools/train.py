@@ -359,19 +359,19 @@ def train(
                                     keep_last=keep_last,
                                 )
                                 keep_last = False or save_all_checkpoints
-                else:
-                    lowest_loss = valid_loss
-                    patience_counter = 0
-                    param_context = (
-                        ema.average_parameters() if ema is not None else nullcontext()
-                    )
-                    with param_context:
-                        checkpoint_handler.save(
-                            state=CheckpointState(model, optimizer, lr_scheduler),
-                            epochs=epoch,
-                            keep_last=keep_last,
+                    else:
+                        lowest_loss = valid_loss
+                        patience_counter = 0
+                        param_context = (
+                            ema.average_parameters() if ema is not None else nullcontext()
                         )
-                        keep_last = False or save_all_checkpoints
+                        with param_context:
+                            checkpoint_handler.save(
+                                state=CheckpointState(model, optimizer, lr_scheduler),
+                                epochs=epoch,
+                                keep_last=keep_last,
+                            )
+                            keep_last = False or save_all_checkpoints
         
         if distributed:
             torch.distributed.barrier()
